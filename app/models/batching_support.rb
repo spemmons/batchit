@@ -51,9 +51,14 @@ module Batchit
     end
 
     def create
-      self.id ||= shadow.next_id
+      self.id ||= shadow.next_id if self.class.primary_key
       if self.class.capture_saves?
         infile.add_to_infile(self)
+
+        # NOTE -- the following is mirrored from ActiveRecord::Persistence
+        ActiveRecord::IdentityMap.add(self) if ActiveRecord::IdentityMap.enabled?
+        @new_record = false
+        self.id
       else
         super
       end

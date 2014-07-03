@@ -26,7 +26,9 @@ module Batchit
       @file.puts object.attributes.values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
 
     rescue
+      #:nocov: remove when clear testable scenarios are clear...
       log_error($!,$@)
+      #:nocov:
     end
 
     def stop_batching
@@ -37,7 +39,9 @@ module Batchit
       Rails.logger.info "#{(@stop_time = Time.zone.now).to_s(:db)} - #{@model} records: #{@record_count} duration: #{(@stop_time - @start_time).to_i}s"
 
     rescue
+      #:nocov: remove when clear testable scenarios are clear...
       log_error($!,$@)
+      #:nocov:
 
     ensure
       @file.close if @file
@@ -45,8 +49,10 @@ module Batchit
     end
 
     def log_error(error,backtrace)
+      #:nocov: remove when clear testable scenarios are clear...
       Rails.logger.error %(#{Time.zone.now.to_s(:db)} - #{@model} ERROR: #{error}\n#{backtrace.join("\n")})
       nil
+      #:nocov:
     end
 
   end

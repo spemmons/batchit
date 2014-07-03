@@ -60,14 +60,31 @@ class BatchitTest < ActiveSupport::TestCase
 
     assert_no_difference 'ChildModel.count' do
       Batchit::Context.instance.start_batching_all_infiles
+
       @child = ChildModel.create!(name: 'D')
     end
+
+    assert ChildModel.is_batching?
 
     assert_difference 'ChildModel.count' do
       ChildModel.infile.file.flush
       assert_equal ["#{@child.id}\tD\n"],File.readlines(ChildModel.infile.path)
+
       Batchit::Context.instance.stop_batching_all_infiles
       assert !File.exist?(ChildModel.infile.path)
+    end
+
+    assert_no_difference 'ChildModel.count' do
+      @child.update_attributes!(name: 'E')
+      assert_equal ({'id' => @child.id,'name' => 'E'}),ChildModel.find(@child.id).attributes
+
+      ChildModel.start_batching
+
+      @child.update_attributes!(name: 'F')
+      assert_equal ({'id' => @child.id,'name' => 'E'}),ChildModel.find(@child.id).attributes
+
+      ChildModel.stop_batching
+      assert_equal ({'id' => @child.id,'name' => 'F'}),ChildModel.find(@child.id).attributes
     end
 
   end
