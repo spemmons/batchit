@@ -13,21 +13,14 @@ method call is used with a "belongs_to" relation for another object.
 This is where "Batchit" comes into play. Consider the following example classes:
 
     class Parent < ActiveRecord::Base
-
       include Batchit::BatchingSupport
-
       belongs_to :child
-
       attr_accessible :name,:child_id
-
     end
 
     class ChildModel < ActiveRecord::Base
-
       include Batchit::BatchingSupport
-
       attr_accessible :name
-
     end
 
 The Parent class has a "belongs_to" relationship with the Child class. Suppose you want to create many
