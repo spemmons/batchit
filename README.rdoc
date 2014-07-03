@@ -1,0 +1,72 @@
+= Batchit
+
+Support for MySQL "load data infile" for ActiveRecord objects supporting "belongs_to" needs
+
+== For ActiveRecord::Base classes
+
+It is well known that with MySQL Rails large numbers of record insertions using SQL "insert into ..." statements
+can be an order of magnitude slower than a batch insertion using a single "load data infile" statement.
+
+The challenge for Rails is how to use this technique, especially when the result of an Model.create
+method call is used with a "belongs_to" relation for another object.
+
+This is where "Batchit" comes into play. Consider the following example classes:
+
+    class Parent < ActiveRecord::Base
+
+      include Batchit::BatchingSupport
+
+      belongs_to :child
+
+      attr_accessible :name,:child_id
+
+    end
+
+    class ChildModel < ActiveRecord::Base
+
+      include Batchit::BatchingSupport
+
+      attr_accessible :name
+
+    end
+
+The Parent class has a "belongs_to" relationship with the Child class. Suppose you want to create many
+Parent and Child instances, but defer updating the database tables until a final combined operation using
+"load data infile ..." statements. You can do this with the following statements:
+
+    Batchit::Context.instance.start_batching_all_infiles
+    1000.times do |counter|
+        child = Child.create!(name: "child #{counter}"}
+        Parent.create!(name: "parent #{counter}",child_id: child.id)
+    end
+    Batchit::Context.instance.stop_batching_all_infiles
+
+OUTSIDE of the "Batchit::Content#start/stop_batching_all_infiles" calls, Parent and Child behave in the normal way,
+but INSIDE, all the create calls will work AND the object ID values will be created for use in "belongs_to" attribute
+relationships, BUT the data is not added to the tables until the "stop..." call.
+
+The same thing works for updating records!
+
+In addition, you can limit the scope of batching to a single class by calling "start/stop_batching" on any class with
+the "Batchit::BatchingSupport" concern added.
+
+== Implementation Details
+
+When "batching" is on for a given class, a file is in the Batchit::Concern#infile_root directory, which defaults to
+Rails.root, combining the name of the class, the Process.pid, and a timestamp. This allows multiple processes to operate
+in parallel if necessary without problems. These files are deleted when the batch is successfully competed, but are
+left in the event of a failure for diagnostic purposes.
+
+"BatchingSupport" classes are modified to remove the "auto_increment" attribute of the primary key (usually "id"),
+and a "shadow" class is created with only and "id" that continues to be auto_increment. The typical Rails plumbing is
+used to create (and quickly delete) records in this table, relying on MySQL's inherent robustness to guarantee that
+unique "id"s continue to exist for these models.
+
+== Next Steps
+
+Here are a couple of things I have left to do...
+
+# Ensure that the "id" of new "shadow" classes pick up where an existing table left off
+# Figure out how to use Travis CI for mysql-specific builds (because I only contemplate supporting MySQL)
+# Do optimzation based on load testing
+# Review/revise the scheme based on error scenarios

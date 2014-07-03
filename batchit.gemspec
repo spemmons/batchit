@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.summary     = 'Support MySQL load data infile'
   s.description = 'Batching insert/update statements in support of belongs_to'
 
-  s.files = Dir['{app,config,lib}/**/*'] + %w(MIT-LICENSE Rakefile README.md)
+  s.files = Dir['{app,config,lib}/**/*'] + %w(MIT-LICENSE Rakefile README.rdoc)
   s.test_files = Dir["test/**/*"]
 
   s.add_dependency 'rails', '~> 3.2.18'
