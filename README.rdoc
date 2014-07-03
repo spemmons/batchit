@@ -51,9 +51,9 @@ in parallel if necessary without problems. These files are deleted when the batc
 left in the event of a failure for diagnostic purposes.
 
 "BatchingSupport" classes are modified to remove the "auto_increment" attribute of the primary key (usually "id"),
-and a "shadow" class is created with only and "id" that continues to be auto_increment. The typical Rails plumbing is
-used to create (and quickly delete) records in this table, relying on MySQL's inherent robustness to guarantee that
-unique "id"s continue to exist for these models.
+and a "shadow" class is created with only an "id" that continues to be the auto_increment source for the original class.
+The typical Rails plumbing is used to create (and quickly delete) records in this table, relying on MySQL's inherent
+robustness to guarantee that unique "id"s continue to exist for these models.
 
 == Next Steps
 
