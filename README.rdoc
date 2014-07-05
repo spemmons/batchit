@@ -55,6 +55,10 @@ and a "shadow" class is created with only an "id" that continues to be the auto_
 The typical Rails plumbing is used to create (and quickly delete) records in this table, relying on MySQL's inherent
 robustness to guarantee that unique "id"s continue to exist for these models.
 
+Lines are added immediately to the "infile" for each model creation event, but are delayed until batching is stopped
+for model update events to save unnecessary lines added to the file, since the last line for a given model will
+overwrite any previous entries.
+
 == Next Steps
 
 Here are a couple of things I have left to do...
@@ -63,3 +67,6 @@ Here are a couple of things I have left to do...
 * Figure out how to use Travis CI for mysql-specific builds (because I only contemplate supporting MySQL)
 * Do optimzation based on load testing
 * Review/revise the scheme based on error scenarios
+* Create rake tasks for checking and repairing schemas (such as when removing "BatchingSupport")
+* Create rake tasks for completing a failed set of "infiles"
+* Add configurability for the gem from an initializer

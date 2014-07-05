@@ -89,4 +89,39 @@ class BatchitTest < ActiveSupport::TestCase
 
   end
 
+  test 'ensure callbacks are called' do
+    assert !ChildModel.is_batching?
+
+    child1 = ChildModel.new(name: 'A1')
+    check_callback_counters(child1,1,0,1) do
+      child1.save!
+    end
+    check_callback_counters(child1,0,1,1) {child1.update_attributes(name: 'A2')}
+
+    ChildModel.start_batching
+
+    child2 = ChildModel.new(name: 'B1')
+    check_callback_counters(child2,1,0,1) {child2.save!}
+    check_callback_counters(child2,0,1,1) {child2.update_attributes(name: 'B2')}
+    check_callback_counters(child1,0,1,1) {child1.update_attributes(name: 'A3')}
+
+    ChildModel.stop_batching
+  end
+  
+  def check_callback_counters(object,create_change,update_change,save_change,&block)
+    assert_difference 'object.before_create_counter',create_change do
+      assert_difference 'object.after_create_counter',create_change do
+        assert_difference 'object.before_update_counter',update_change do
+          assert_difference 'object.after_update_counter',update_change do
+            assert_difference 'object.before_save_counter',save_change do
+              assert_difference 'object.after_save_counter',save_change do
+                block.call
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
 end

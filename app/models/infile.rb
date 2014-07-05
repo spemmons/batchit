@@ -5,6 +5,7 @@ module Batchit
 
     def initialize(model,ignore = true)
       @model,@ignore = model,ignore
+      @update_cache = {}
     end
 
     def is_batching?
@@ -21,9 +22,9 @@ module Batchit
       @file = File.open(@path,'w')
     end
 
-    def add_to_infile(object)
+    def add_create(object)
       @record_count += 1
-      @file.puts object.attributes.values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
+      @file.puts build_output_line(object)
 
     rescue
       #:nocov: remove when clear testable scenarios are clear...
@@ -31,7 +32,12 @@ module Batchit
       #:nocov:
     end
 
+    def add_update(object)
+      @update_cache[object.to_param] = build_output_line(object)
+    end
+
     def stop_batching
+      flush_update_cache
       @file.close
       @file = nil
       @model.connection.execute "load data infile '#{@path}' #{@ignore ? 'ignore' : 'replace'} into table #{@model.table_name} fields terminated by '\\t' escaped by '\\\\'"
@@ -53,6 +59,18 @@ module Batchit
       Rails.logger.error %(#{Time.zone.now.to_s(:db)} - #{@model} ERROR: #{error}\n#{backtrace.join("\n")})
       nil
       #:nocov:
+    end
+
+    def build_output_line(object)
+      object.attributes.values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
+    end
+
+    def flush_update_cache
+      @update_cache.values.each do |line|
+        @file.puts line
+        @record_count += 1
+      end
+      @update_cache = {}
     end
 
   end
