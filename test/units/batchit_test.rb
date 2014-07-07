@@ -90,10 +90,10 @@ class BatchitTest < ActiveSupport::TestCase
   end
 
   test 'ensure valid batch update attributes' do
-    assert_equal [],ChildModel.batching_update_attributes
+    assert_equal [],ChildModel.batching_attributes
 
-    ChildModel.batching_update_attribute :id
-    assert_equal %w(id),ChildModel.batching_update_attributes
+    ChildModel.batching_attribute :id
+    assert_equal %w(id),ChildModel.batching_attributes
 
     assert_no_difference 'ChildModel.count' do
       ChildModel.start_batching
@@ -110,24 +110,24 @@ class BatchitTest < ActiveSupport::TestCase
     child = ChildModel.last
     assert_equal @child.id,child.id
 
-    ChildModel.batching_update_attribute 'name'
-    assert_equal %w(id name),ChildModel.batching_update_attributes
+    ChildModel.batching_attribute 'name'
+    assert_equal %w(id name),ChildModel.batching_attributes
 
-    assert_raises_string('duplicate batching update attributes -- ["id", "name"]') do
-      ChildModel.batching_update_attribute *ChildModel.column_names
+    assert_raises_string('duplicate batching attributes -- ["id", "name"]') do
+      ChildModel.batching_attribute *ChildModel.column_names
     end
 
-    ChildModel.reset_batching_update_attributes
-    assert_equal [],ChildModel.batching_update_attributes
+    ChildModel.reset_batching_attributes
+    assert_equal [],ChildModel.batching_attributes
 
-    assert_raises_string('invalid batching update attributes -- ["wrong"]') do
-      ChildModel.batching_update_attribute 'wrong'
+    assert_raises_string('invalid batching attributes -- ["wrong"]') do
+      ChildModel.batching_attribute 'wrong'
     end
 
-    ChildModel.batching_update_attribute *ChildModel.column_names
-    assert_equal %w(id name),ChildModel.batching_update_attributes
+    ChildModel.batching_attribute *ChildModel.column_names
+    assert_equal %w(id name),ChildModel.batching_attributes
 
-    ChildModel.reset_batching_update_attributes
+    ChildModel.reset_batching_attributes
   end
 
   test 'ensure callbacks are called' do

@@ -24,7 +24,7 @@ module Batchit
 
       def start_batching
         start_capturing_saves
-        infile.limit_columns(batching_update_attributes) if batching_update_attributes.any?
+        infile.limit_columns(batching_attributes) if batching_attributes.any?
         infile.start_batching
       end
 
@@ -33,20 +33,20 @@ module Batchit
         infile.stop_batching
       end
 
-      def batching_update_attributes
-        (@@batching_update_attributes ||= []).dup
+      def batching_attributes
+        (@@batching_attributes ||= []).dup
       end
 
-      def reset_batching_update_attributes
-        @@batching_update_attributes = []
+      def reset_batching_attributes
+        @@batching_attributes = []
       end
 
-      def batching_update_attribute(*args)
+      def batching_attribute(*args)
         args = args.collect(&:to_s)
-        raise 'no batching update attributes defined' if args.compact.empty?
-        raise "duplicate batching update attributes -- #{args & batching_update_attributes}" if (args & batching_update_attributes).any?
-        raise "invalid batching update attributes -- #{args - self.column_names}" if (args - self.column_names).any?
-        @@batching_update_attributes += args
+        raise 'no batching attributes defined' if args.compact.empty?
+        raise "duplicate batching attributes -- #{args & batching_attributes}" if (args & batching_attributes).any?
+        raise "invalid batching attributes -- #{args - self.column_names}" if (args - self.column_names).any?
+        @@batching_attributes += args
       end
 
       private
@@ -90,7 +90,7 @@ module Batchit
     private
 
     def validate_batching_changes
-      return unless (restrictions = self.class.batching_update_attributes).any?
+      return unless (restrictions = self.class.batching_attributes).any?
 
       (changes.keys - restrictions).each{|problem| errors.add(problem,'can not be updated while batching')}
     end
