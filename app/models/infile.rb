@@ -1,15 +1,21 @@
 module Batchit
   class Infile
 
-    attr_reader :model,:file,:path,:ignore,:record_count,:start_time,:stop_time
+    attr_reader :model,:file,:path,:ignore,:collumn_limits,:record_count,:start_time,:stop_time
 
     def initialize(model,ignore = true)
       @model,@ignore = model,ignore
-      @update_cache = {}
+      @update_cache,@column_limits = {},[]
     end
 
     def is_batching?
       !!@file
+    end
+
+    def limit_columns(column_limits)
+      raise 'cannot set limit columns while batching' if is_batching?
+      raise "invalid columns -- #{column_limits - @model.column_names}" if column_limits.any? and (column_limits - @model.column_names).any?
+      @column_limits = column_limits
     end
 
     def start_batching
@@ -40,7 +46,7 @@ module Batchit
       flush_update_cache
       @file.close
       @file = nil
-      @model.connection.execute "load data infile '#{@path}' #{@ignore ? 'ignore' : 'replace'} into table #{@model.table_name} fields terminated by '\\t' escaped by '\\\\'"
+      @model.connection.execute load_infile_statement
       File.delete(@path)
       Rails.logger.info "#{(@stop_time = Time.zone.now).to_s(:db)} - #{@model} records: #{@record_count} duration: #{(@stop_time - @start_time).to_i}s"
 
@@ -62,7 +68,8 @@ module Batchit
     end
 
     def build_output_line(object)
-      object.attributes.values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
+      values = @column_limits.any? ? object.attributes.values_at(*@column_limits) : object.attributes.values
+      values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
     end
 
     def flush_update_cache
@@ -71,6 +78,18 @@ module Batchit
         @record_count += 1
       end
       @update_cache = {}
+    end
+
+    def load_infile_statement
+      "load data infile '#{@path}' #{ignore_clause} into table #{@model.table_name} fields terminated by '\\t' escaped by '\\\\'#{column_limit_clause}"
+    end
+
+    def ignore_clause
+      @ignore ? 'ignore' : 'replace'
+    end
+
+    def column_limit_clause
+      " (#{@column_limits.join(',')})" if @column_limits.any?
     end
 
   end

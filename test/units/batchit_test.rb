@@ -89,6 +89,47 @@ class BatchitTest < ActiveSupport::TestCase
 
   end
 
+  test 'ensure valid batch update attributes' do
+    assert_equal [],ChildModel.batching_update_attributes
+
+    ChildModel.batching_update_attribute :id
+    assert_equal %w(id),ChildModel.batching_update_attributes
+
+    assert_no_difference 'ChildModel.count' do
+      ChildModel.start_batching
+      assert_raises_string('Validation failed: Name can not be updated while batching') do
+        ChildModel.create!(name: 'skip')
+      end
+      @child = ChildModel.create!
+    end
+    assert_difference 'ChildModel.count' do
+      ChildModel.infile.file.flush
+      assert_equal ["#{@child.id}\n"],File.readlines(ChildModel.infile.path)
+      ChildModel.stop_batching
+    end
+    child = ChildModel.last
+    assert_equal @child.id,child.id
+
+    ChildModel.batching_update_attribute 'name'
+    assert_equal %w(id name),ChildModel.batching_update_attributes
+
+    assert_raises_string('duplicate batching update attributes -- ["id", "name"]') do
+      ChildModel.batching_update_attribute *ChildModel.column_names
+    end
+
+    ChildModel.reset_batching_update_attributes
+    assert_equal [],ChildModel.batching_update_attributes
+
+    assert_raises_string('invalid batching update attributes -- ["wrong"]') do
+      ChildModel.batching_update_attribute 'wrong'
+    end
+
+    ChildModel.batching_update_attribute *ChildModel.column_names
+    assert_equal %w(id name),ChildModel.batching_update_attributes
+
+    ChildModel.reset_batching_update_attributes
+  end
+
   test 'ensure callbacks are called' do
     assert !ChildModel.is_batching?
 

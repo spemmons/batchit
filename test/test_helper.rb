@@ -23,3 +23,10 @@ Rails.backtrace_cleaner.remove_silencers!
 
 # Load support files
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }
+
+def assert_raises_string(error_string,&block)
+  block.call
+  raise "'#{error_string}' error expected"
+rescue
+  assert_equal(error_string,$!.to_s)
+end

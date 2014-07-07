@@ -8,6 +8,8 @@ module Batchit
       @@infile = Context.instance.add_infile(self)
       @@shadow = Context.instance.add_shadow(self)
 
+      validate :validate_batching_changes
+
     end
 
     module ClassMethods
@@ -22,12 +24,29 @@ module Batchit
 
       def start_batching
         start_capturing_saves
+        infile.limit_columns(batching_update_attributes) if batching_update_attributes.any?
         infile.start_batching
       end
 
       def stop_batching
         stop_capturing_saves
         infile.stop_batching
+      end
+
+      def batching_update_attributes
+        (@@batching_update_attributes ||= []).dup
+      end
+
+      def reset_batching_update_attributes
+        @@batching_update_attributes = []
+      end
+
+      def batching_update_attribute(*args)
+        args = args.collect(&:to_s)
+        raise 'no batching update attributes defined' if args.compact.empty?
+        raise "duplicate batching update attributes -- #{args & batching_update_attributes}" if (args & batching_update_attributes).any?
+        raise "invalid batching update attributes -- #{args - self.column_names}" if (args - self.column_names).any?
+        @@batching_update_attributes += args
       end
 
       private
@@ -66,6 +85,14 @@ module Batchit
       else
         super(attribute_names)
       end
+    end
+
+    private
+
+    def validate_batching_changes
+      return unless (restrictions = self.class.batching_update_attributes).any?
+
+      (changes.keys - restrictions).each{|problem| errors.add(problem,'can not be updated while batching')}
     end
 
   end
