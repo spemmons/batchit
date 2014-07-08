@@ -90,7 +90,7 @@ module Batchit
     private
 
     def validate_batching_changes
-      return unless (restrictions = self.class.batching_attributes).any?
+      return unless self.class.is_batching? and (restrictions = self.class.batching_attributes).any?
 
       (changes.keys - restrictions).each{|problem| errors.add(problem,'can not be updated while batching')}
     end
