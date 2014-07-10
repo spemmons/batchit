@@ -4,15 +4,22 @@ module Batchit
 
     included do
 
-      cattr_reader :infile,:shadow
-      @@infile = Context.instance.add_infile(self)
-      @@shadow = Context.instance.add_shadow(self)
+      Context.instance.add_infile(self)
+      Context.instance.add_shadow(self)
 
       validate :validate_batching_changes
 
     end
 
     module ClassMethods
+
+      def infile
+        Context.instance.model_infile_map[self]
+      end
+
+      def shadow
+        Context.instance.model_shadow_map[self]
+      end
 
       def capture_saves?
         @@capture_saves ||= false
@@ -46,6 +53,7 @@ module Batchit
         raise 'no batching attributes defined' if args.compact.empty?
         raise "duplicate batching attributes -- #{args & batching_attributes}" if (args & batching_attributes).any?
         raise "invalid batching attributes -- #{args - self.column_names}" if (args - self.column_names).any?
+        raise 'primary key is implied and not a valid limit column' if args.include?(self.primary_key)
         @@batching_attributes += args
       end
 
@@ -62,10 +70,10 @@ module Batchit
     end
 
     def create
-      self.id ||= shadow.next_id if self.class.primary_key
+      self.id ||= self.class.shadow.next_id if self.class.primary_key
       if self.class.capture_saves?
         run_callbacks(:create) do
-          infile.add_create(self)
+          self.class.infile.add_create(self)
 
           # NOTE -- the following is mirrored from ActiveRecord::Persistence
           ActiveRecord::IdentityMap.add(self) if ActiveRecord::IdentityMap.enabled?
@@ -80,7 +88,7 @@ module Batchit
     def update(attribute_names = @attributes.keys)
       if self.class.capture_saves?
         run_callbacks(:update) do
-          infile.add_update(self)
+          self.class.infile.add_update(self)
         end
       else
         super(attribute_names)

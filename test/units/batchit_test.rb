@@ -20,7 +20,7 @@ class BatchitTest < ActiveSupport::TestCase
 
   test 'batching support' do
     assert_equal Batchit::Infile,ChildModel.infile.class
-    assert_equal [ChildModel],Batchit::Context.instance.model_infile_map.keys
+    assert_equal [ChildModel,OtherModel],Batchit::Context.instance.model_infile_map.keys
   end
 
   test 'infile attributes' do
@@ -68,7 +68,7 @@ class BatchitTest < ActiveSupport::TestCase
 
     assert_difference 'ChildModel.count' do
       ChildModel.infile.file.flush
-      assert_equal ["#{@child.id}\tD\n"],File.readlines(ChildModel.infile.path)
+      assert_equal ["#{@child.id}\tD\t\\N\n"],File.readlines(ChildModel.infile.path)
 
       Batchit::Context.instance.stop_batching_all_infiles
       assert !File.exist?(ChildModel.infile.path)
@@ -76,15 +76,15 @@ class BatchitTest < ActiveSupport::TestCase
 
     assert_no_difference 'ChildModel.count' do
       @child.update_attributes!(name: 'E')
-      assert_equal ({'id' => @child.id,'name' => 'E'}),ChildModel.find(@child.id).attributes
+      assert_equal ({'id' => @child.id,'name' => 'E','extra' => nil}),ChildModel.find(@child.id).attributes
 
       ChildModel.start_batching
 
       @child.update_attributes!(name: 'F')
-      assert_equal ({'id' => @child.id,'name' => 'E'}),ChildModel.find(@child.id).attributes
+      assert_equal ({'id' => @child.id,'name' => 'E','extra' => nil}),ChildModel.find(@child.id).attributes
 
       ChildModel.stop_batching
-      assert_equal ({'id' => @child.id,'name' => 'F'}),ChildModel.find(@child.id).attributes
+      assert_equal ({'id' => @child.id,'name' => 'F','extra' => nil}),ChildModel.find(@child.id).attributes
     end
 
   end
@@ -92,28 +92,32 @@ class BatchitTest < ActiveSupport::TestCase
   test 'ensure valid batch update attributes' do
     assert_equal [],ChildModel.batching_attributes
 
-    ChildModel.batching_attribute :id
-    assert_equal %w(id),ChildModel.batching_attributes
+    assert_raises_string 'primary key is implied and not a valid limit column' do
+      ChildModel.batching_attribute :id
+    end
+
+    ChildModel.batching_attribute :name
+    assert_equal %w(name),ChildModel.batching_attributes
 
     assert_no_difference 'ChildModel.count' do
       ChildModel.start_batching
-      assert_raises_string('Validation failed: Name can not be updated while batching') do
-        ChildModel.create!(name: 'skip')
+      assert_raises_string('Validation failed: Extra can not be updated while batching') do
+        ChildModel.create!(name: 'test',extra: 'skip')
       end
-      @child = ChildModel.create!
+      @child = ChildModel.create!(name: 'test')
     end
     assert_difference 'ChildModel.count' do
       ChildModel.infile.file.flush
-      assert_equal ["#{@child.id}\n"],File.readlines(ChildModel.infile.path)
+      assert_equal ["#{@child.id}\ttest\n"],File.readlines(ChildModel.infile.path)
       ChildModel.stop_batching
     end
     child = ChildModel.last
     assert_equal @child.id,child.id
 
-    ChildModel.batching_attribute 'name'
-    assert_equal %w(id name),ChildModel.batching_attributes
+    ChildModel.batching_attribute 'extra'
+    assert_equal %w(name extra),ChildModel.batching_attributes
 
-    assert_raises_string('duplicate batching attributes -- ["id", "name"]') do
+    assert_raises_string('duplicate batching attributes -- ["name", "extra"]') do
       ChildModel.batching_attribute *ChildModel.column_names
     end
 
@@ -123,9 +127,6 @@ class BatchitTest < ActiveSupport::TestCase
     assert_raises_string('invalid batching attributes -- ["wrong"]') do
       ChildModel.batching_attribute 'wrong'
     end
-
-    ChildModel.batching_attribute *ChildModel.column_names
-    assert_equal %w(id name),ChildModel.batching_attributes
 
     ChildModel.reset_batching_attributes
   end

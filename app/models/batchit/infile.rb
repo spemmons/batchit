@@ -15,6 +15,7 @@ module Batchit
     def limit_columns(column_limits)
       raise 'cannot set limit columns while batching' if is_batching?
       raise "invalid columns -- #{column_limits - @model.column_names}" if column_limits.any? and (column_limits - @model.column_names).any?
+      raise 'primary key is implied and not a valid limit column' if column_limits.include?(@model.primary_key)
       @column_limits = column_limits
     end
 
@@ -68,7 +69,7 @@ module Batchit
     end
 
     def build_output_line(object)
-      values = @column_limits.any? ? object.attributes.values_at(*@column_limits) : object.attributes.values
+      values = @column_limits.any? ? object.attributes.values_at(*([@model.primary_key] + @column_limits)) : object.attributes.values
       values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
     end
 
@@ -89,7 +90,7 @@ module Batchit
     end
 
     def column_limit_clause
-      " (#{@column_limits.join(',')})" if @column_limits.any?
+      " (#{@model.primary_key},#{@column_limits.join(',')})" if @column_limits.any?
     end
 
   end

@@ -9,6 +9,12 @@ ActiveRecord::Schema.define do
 
   create_table :child_models do |t|
     t.string  :name
+    t.string  :extra
+  end
+
+  create_table :other_models do |t|
+    t.string :a
+    t.string :b
   end
 
 end
@@ -25,7 +31,7 @@ class ChildModel < ActiveRecord::Base
 
   include Batchit::BatchingSupport
 
-  attr_accessible :name
+  attr_accessible :name,:extra
   
   attr_reader :before_create_counter,:after_create_counter
 
@@ -59,5 +65,11 @@ class ChildModel < ActiveRecord::Base
     @before_update_counter,@after_update_counter  = 0,0
     @before_save_counter,@after_save_counter      = 0,0
   end
+
+end
+
+class OtherModel < ActiveRecord::Base
+
+  include Batchit::BatchingSupport
 
 end
