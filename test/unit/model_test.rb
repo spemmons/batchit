@@ -1,10 +1,6 @@
 require 'test_helper'
 
-class BatchitTest < ActiveSupport::TestCase
-
-  test 'module exists' do
-    assert_kind_of Module, Batchit
-  end
+class ModelTest < ActiveSupport::TestCase
 
   test 'parent-child relationship' do
     assert_difference 'ParentModel.count' do
@@ -20,7 +16,13 @@ class BatchitTest < ActiveSupport::TestCase
 
   test 'batching support' do
     assert_equal Batchit::Infile,ChildModel.infile.class
-    assert_equal [ChildModel,OtherModel],Batchit::Context.instance.model_infile_map.keys
+    assert_equal [ChildModel,SyncedModel,UnsyncedModel,ProblemModel,AutoIncrementer],Batchit::Context.model_shadow_map.keys
+    assert_equal [ChildModelShadow,SyncedModelShadow,nil,nil,AutoIncrementerShadow],Batchit::Context.model_shadow_map.values
+    assert_equal [ChildModel,SyncedModel,AutoIncrementer],Batchit::Context.model_infile_map.keys
+
+    assert_equal false,UnsyncedModel.is_batching?
+    UnsyncedModel.start_batching
+    assert_equal false,UnsyncedModel.is_batching?
   end
 
   test 'infile attributes' do
@@ -59,7 +61,7 @@ class BatchitTest < ActiveSupport::TestCase
     end
 
     assert_no_difference 'ChildModel.count' do
-      Batchit::Context.instance.start_batching_all_models
+      Batchit::Context.start_batching_all_models
 
       @child = ChildModel.create!(name: 'D')
     end
@@ -70,7 +72,7 @@ class BatchitTest < ActiveSupport::TestCase
       ChildModel.infile.file.flush
       assert_equal ["#{@child.id}\tD\t\\N\n"],File.readlines(ChildModel.infile.path)
 
-      Batchit::Context.instance.stop_batching_all_models
+      Batchit::Context.stop_batching_all_models
       assert !File.exist?(ChildModel.infile.path)
     end
 
@@ -107,7 +109,7 @@ class BatchitTest < ActiveSupport::TestCase
 
     ChildModel.stop_batching
   end
-  
+
   def check_callback_counters(object,create_change,update_change,save_change,&block)
     assert_difference 'object.before_create_counter',create_change do
       assert_difference 'object.after_create_counter',create_change do

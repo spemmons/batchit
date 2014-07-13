@@ -13,13 +13,13 @@ method call is used with a "belongs_to" relation for another object.
 This is where "Batchit" comes into play. Consider the following example classes:
 
     class Parent < ActiveRecord::Base
-      include Batchit::BatchingSupport
+      include Batchit::Model
       belongs_to :child
       attr_accessible :name,:child_id
     end
 
     class ChildModel < ActiveRecord::Base
-      include Batchit::BatchingSupport
+      include Batchit::Model
       attr_accessible :name
     end
 
@@ -27,12 +27,12 @@ The Parent class has a "belongs_to" relationship with the Child class. Suppose y
 Parent and Child instances, but defer updating the database tables until a final combined operation using
 "load data infile ..." statements. You can do this with the following statements:
 
-    Batchit::Context.instance.start_batching_all_models
+    Batchit::Context.start_batching_all_models
     1000.times do |counter|
         child = Child.create!(name: "child #{counter}"}
         Parent.create!(name: "parent #{counter}",child_id: child.id)
     end
-    Batchit::Context.instance.stop_batching_all_models
+    Batchit::Context.stop_batching_all_models
 
 OUTSIDE of the "Batchit::Content#start/stop_batching_all_models" calls, Parent and Child behave in the normal way,
 but INSIDE, all the create calls will work AND the object ID values will be created for use in "belongs_to" attribute
@@ -41,7 +41,7 @@ relationships, BUT the data is not added to the tables until the "stop..." call.
 The same thing works for updating records!
 
 In addition, you can limit the scope of batching to a single class by calling "start/stop_batching" on any class with
-the "Batchit::BatchingSupport" concern added.
+the "Batchit::Model" concern added.
 
 == Implementation Details
 
@@ -50,7 +50,7 @@ Rails.root, combining the name of the class, the Process.pid, and a timestamp. T
 in parallel if necessary without problems. These files are deleted when the batch is successfully competed, but are
 left in the event of a failure for diagnostic purposes.
 
-"BatchingSupport" classes are modified to remove the "auto_increment" attribute of the primary key (usually "id"),
+"Model" classes are modified to remove the "auto_increment" attribute of the primary key (usually "id"),
 and a "shadow" class is created with only an "id" that continues to be the auto_increment source for the original class.
 The typical Rails plumbing is used to create (and quickly delete) records in this table, relying on MySQL's inherent
 robustness to guarantee that unique "id"s continue to exist for these models.
@@ -67,6 +67,6 @@ Here are a couple of things I have left to do...
 * Figure out how to use Travis CI for mysql-specific builds (because I only contemplate supporting MySQL)
 * Do optimzation based on load testing
 * Review/revise the scheme based on error scenarios
-* Create rake tasks for checking and repairing schemas (such as when removing "BatchingSupport")
+* Create rake tasks for checking and repairing schemas (such as when removing "Model")
 * Create rake tasks for completing a failed set of "infile"
 * Add configurability for the gem from an initializer

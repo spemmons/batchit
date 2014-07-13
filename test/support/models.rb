@@ -16,11 +16,36 @@ ActiveRecord::Schema.define do
     #t.timestamps
   end
 
-  create_table :other_models do |t|
+  create_table :synced_models do |t|
     t.string :a
     t.string :b
 
     t.timestamps
+  end
+
+  create_table :unsynced_models do |t|
+    t.string :c
+    t.string :d
+  end
+
+  create_table :problem_models do |t|
+    t.string :e
+    t.string :f
+  end
+
+  create_table :problem_model_shadows do |t|
+  end
+
+  create_table :previous_models do |t|
+    t.string :g
+    t.string :h
+  end
+
+  create_table :previous_model_shadows do |t|
+  end
+
+  create_table :auto_incrementers do |t|
+    t.string :name
   end
 
 end
@@ -74,8 +99,36 @@ class ChildModel < ActiveRecord::Base
 
 end
 
-class OtherModel < ActiveRecord::Base
+Batchit::Context.sync_model(ChildModel)
+
+class SyncedModel < ActiveRecord::Base
 
   include Batchit::Model
 
 end
+
+Batchit::Context.sync_model(SyncedModel)
+
+class UnsyncedModel < ActiveRecord::Base
+
+  include Batchit::Model
+
+end
+
+class ProblemModel < ActiveRecord::Base
+
+  include Batchit::Model
+
+end
+
+class PreviousModel < ActiveRecord::Base
+
+end
+
+ActiveRecord::Base.connection.execute 'insert into auto_incrementers (name) values ("A"),("B"),("C")'
+
+class AutoIncrementer < ActiveRecord::Base
+  include Batchit::Model
+  attr_accessible :name
+end
+AutoIncrementer.ensure_shadow

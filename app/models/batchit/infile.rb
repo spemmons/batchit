@@ -17,7 +17,7 @@ module Batchit
       @record_count = 0
       @start_time = Time.zone.now
       @stop_time = nil
-      @path = Context.instance.infile_root + Time.zone.now.strftime("tmp/#{@model.to_s.underscore}_#{Process.pid}_%Y%m%d%H%M%S.tsv")
+      @path = Context.infile_root + Time.zone.now.strftime("tmp/#{@model.to_s.underscore}_#{Process.pid}_%Y%m%d%H%M%S.tsv")
       FileUtils.mkdir_p(File.dirname(@path))
       @file = File.open(@path,'w')
     end
