@@ -59,7 +59,7 @@ class BatchitTest < ActiveSupport::TestCase
     end
 
     assert_no_difference 'ChildModel.count' do
-      Batchit::Context.instance.start_batching_all_infiles
+      Batchit::Context.instance.start_batching_all_models
 
       @child = ChildModel.create!(name: 'D')
     end
@@ -70,7 +70,7 @@ class BatchitTest < ActiveSupport::TestCase
       ChildModel.infile.file.flush
       assert_equal ["#{@child.id}\tD\t\\N\n"],File.readlines(ChildModel.infile.path)
 
-      Batchit::Context.instance.stop_batching_all_infiles
+      Batchit::Context.instance.stop_batching_all_models
       assert !File.exist?(ChildModel.infile.path)
     end
 
@@ -87,48 +87,6 @@ class BatchitTest < ActiveSupport::TestCase
       assert_equal ({'id' => @child.id,'name' => 'F','extra' => nil}),ChildModel.find(@child.id).attributes
     end
 
-  end
-
-  test 'ensure valid batch update attributes' do
-    assert_equal [],ChildModel.batching_attributes
-
-    assert_raises_string 'primary key is implied and not a valid limit column' do
-      ChildModel.batching_attribute :id
-    end
-
-    ChildModel.batching_attribute :name
-    assert_equal %w(name),ChildModel.batching_attributes
-
-    assert_no_difference 'ChildModel.count' do
-      ChildModel.start_batching
-      assert_raises_string('Validation failed: Extra can not be updated while batching') do
-        ChildModel.create!(name: 'test',extra: 'skip')
-      end
-      @child = ChildModel.create!(name: 'test')
-    end
-    assert_difference 'ChildModel.count' do
-      ChildModel.infile.file.flush
-      assert_equal ["#{@child.id}\ttest\n"],File.readlines(ChildModel.infile.path)
-      ChildModel.stop_batching
-    end
-    child = ChildModel.last
-    assert_equal @child.id,child.id
-
-    ChildModel.batching_attribute 'extra'
-    assert_equal %w(name extra),ChildModel.batching_attributes
-
-    assert_raises_string('duplicate batching attributes -- ["name", "extra"]') do
-      ChildModel.batching_attribute *ChildModel.column_names
-    end
-
-    ChildModel.reset_batching_attributes
-    assert_equal [],ChildModel.batching_attributes
-
-    assert_raises_string('invalid batching attributes -- ["wrong"]') do
-      ChildModel.batching_attribute 'wrong'
-    end
-
-    ChildModel.reset_batching_attributes
   end
 
   test 'ensure callbacks are called' do

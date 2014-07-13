@@ -5,16 +5,22 @@ ActiveRecord::Schema.define do
   create_table :parent_models do |t|
     t.integer :child_id
     t.string  :name
+
+    #t.timestamps
   end
 
   create_table :child_models do |t|
     t.string  :name
     t.string  :extra
+
+    #t.timestamps
   end
 
   create_table :other_models do |t|
     t.string :a
     t.string :b
+
+    t.timestamps
   end
 
 end
@@ -29,7 +35,7 @@ end
 
 class ChildModel < ActiveRecord::Base
 
-  include Batchit::BatchingSupport
+  include Batchit::Model
 
   attr_accessible :name,:extra
   
@@ -70,6 +76,6 @@ end
 
 class OtherModel < ActiveRecord::Base
 
-  include Batchit::BatchingSupport
+  include Batchit::Model
 
 end

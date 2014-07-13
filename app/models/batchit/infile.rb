@@ -1,22 +1,15 @@
 module Batchit
   class Infile
 
-    attr_reader :model,:file,:path,:ignore,:collumn_limits,:record_count,:start_time,:stop_time
+    attr_reader :model,:file,:path,:record_count,:start_time,:stop_time
 
-    def initialize(model,ignore = true)
-      @model,@ignore = model,ignore
-      @update_cache,@column_limits = {},[]
+    def initialize(model)
+      @model = model
+      @update_cache = {}
     end
 
     def is_batching?
       !!@file
-    end
-
-    def limit_columns(column_limits)
-      raise 'cannot set limit columns while batching' if is_batching?
-      raise "invalid columns -- #{column_limits - @model.column_names}" if column_limits.any? and (column_limits - @model.column_names).any?
-      raise 'primary key is implied and not a valid limit column' if column_limits.include?(@model.primary_key)
-      @column_limits = column_limits
     end
 
     def start_batching
@@ -29,68 +22,45 @@ module Batchit
       @file = File.open(@path,'w')
     end
 
-    def add_create(object)
-      @record_count += 1
-      @file.puts build_output_line(object)
-
-    rescue
-      #:nocov: remove when clear testable scenarios are clear...
-      log_error($!,$@)
-      #:nocov:
+    def add_record(object)
+      case object
+        when Hash   then add_attributes(object.inject({}){|hash,pair| hash[pair.first.name.to_s] = pair.last; hash})
+        when @model then add_attributes(object.attributes)
+        else raise "invalid object type: #{object.class}"
+      end
     end
 
-    def add_update(object)
-      @update_cache[object.to_param] = build_output_line(object)
+    def add_attributes(attributes)
+      @record_count += 1
+      @file.puts build_output_line(attributes)
     end
 
     def stop_batching
-      flush_update_cache
+      flush_infile
+      Rails.logger.info "#{(@stop_time = Time.zone.now).to_s(:db)} - INFILE #{@model} records: #{@record_count} duration: #{(@stop_time - @start_time).to_i}s"
+    end
+
+    def build_output_line(attributes)
+      @model.column_names.collect{|key| value = attributes[key]; value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
+    end
+
+    def check_model_instance(object)
+      raise "#{@model} expected but #{object.class} found" unless object.kind_of?(@model)
+    end
+
+    def flush_infile
       @file.close
       @file = nil
       @model.connection.execute load_infile_statement
       File.delete(@path)
-      Rails.logger.info "#{(@stop_time = Time.zone.now).to_s(:db)} - #{@model} records: #{@record_count} duration: #{(@stop_time - @start_time).to_i}s"
-
-    rescue
-      #:nocov: remove when clear testable scenarios are clear...
-      log_error($!,$@)
-      #:nocov:
 
     ensure
       @file.close if @file
       @file = nil
     end
 
-    def log_error(error,backtrace)
-      #:nocov: remove when clear testable scenarios are clear...
-      Rails.logger.error %(#{Time.zone.now.to_s(:db)} - #{@model} ERROR: #{error}\n#{backtrace.join("\n")})
-      nil
-      #:nocov:
-    end
-
-    def build_output_line(object)
-      values = @column_limits.any? ? object.attributes.values_at(*([@model.primary_key] + @column_limits)) : object.attributes.values
-      values.collect{|value| value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
-    end
-
-    def flush_update_cache
-      @update_cache.values.each do |line|
-        @file.puts line
-        @record_count += 1
-      end
-      @update_cache = {}
-    end
-
     def load_infile_statement
-      "load data infile '#{@path}' #{ignore_clause} into table #{@model.table_name} fields terminated by '\\t' escaped by '\\\\'#{column_limit_clause}"
-    end
-
-    def ignore_clause
-      @ignore ? 'ignore' : 'replace'
-    end
-
-    def column_limit_clause
-      " (#{@model.primary_key},#{@column_limits.join(',')})" if @column_limits.any?
+      "load data infile '#{@path}' into table #{@model.table_name} fields terminated by '\\t' escaped by '\\\\'"
     end
 
   end

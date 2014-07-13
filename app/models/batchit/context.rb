@@ -4,10 +4,10 @@ module Batchit
   class Context
     include Singleton
 
-    attr_reader :model_infile_map,:model_shadow_map
+    attr_reader :model_infile_map,:model_shadow_map,:model_updates_map
 
     def initialize
-      @model_infile_map,@model_shadow_map = {},{}
+      @model_infile_map,@model_shadow_map,@model_updates_map = {},{},{}
     end
 
     # INFILE methods
@@ -18,14 +18,14 @@ module Batchit
 
     def add_infile(model)
       raise "infile already exists for #{model}" if @model_infile_map[model]
-      @model_infile_map[model] = Infile.new(model,false)
+      @model_infile_map[model] = Infile.new(model)
     end
 
-    def start_batching_all_infiles
+    def start_batching_all_models
       @model_infile_map.keys.collect(&:start_batching)
     end
 
-    def stop_batching_all_infiles
+    def stop_batching_all_models
       @model_infile_map.keys.collect(&:stop_batching)
     end
 

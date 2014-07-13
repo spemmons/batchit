@@ -27,14 +27,14 @@ The Parent class has a "belongs_to" relationship with the Child class. Suppose y
 Parent and Child instances, but defer updating the database tables until a final combined operation using
 "load data infile ..." statements. You can do this with the following statements:
 
-    Batchit::Context.instance.start_batching_all_infiles
+    Batchit::Context.instance.start_batching_all_models
     1000.times do |counter|
         child = Child.create!(name: "child #{counter}"}
         Parent.create!(name: "parent #{counter}",child_id: child.id)
     end
-    Batchit::Context.instance.stop_batching_all_infiles
+    Batchit::Context.instance.stop_batching_all_models
 
-OUTSIDE of the "Batchit::Content#start/stop_batching_all_infiles" calls, Parent and Child behave in the normal way,
+OUTSIDE of the "Batchit::Content#start/stop_batching_all_models" calls, Parent and Child behave in the normal way,
 but INSIDE, all the create calls will work AND the object ID values will be created for use in "belongs_to" attribute
 relationships, BUT the data is not added to the tables until the "stop..." call.
 
@@ -68,5 +68,5 @@ Here are a couple of things I have left to do...
 * Do optimzation based on load testing
 * Review/revise the scheme based on error scenarios
 * Create rake tasks for checking and repairing schemas (such as when removing "BatchingSupport")
-* Create rake tasks for completing a failed set of "infiles"
+* Create rake tasks for completing a failed set of "infile"
 * Add configurability for the gem from an initializer
