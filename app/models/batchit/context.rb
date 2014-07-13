@@ -45,13 +45,13 @@ module Batchit
         model_class_name = model_name_part.classify
         shadow_class_name = shadow_table_name.singularize.classify
         if not (model_class = eval("defined?(#{model_class_name}) ? #{model_class_name} : nil"))
-          puts "WARNING: shadow table #{shadow_table_name} exists but no model class #{model_class_name} exists; drop this table yourself, just in case!"
+          puts "WARNING: Shadow table #{shadow_table_name} exists but no model class #{model_class_name} exists; drop this table yourself, just in case!"
         elsif not @@model_shadow_map.keys.include?(model_class)
           puts "NOTE: Dropping shadow table #{shadow_table_name} and resetting auto-increment for #{model_table_name}"
-          puts "WARNING: could not reset auto-increment for #{model_table_name}; please investigate!" unless ensure_auto_increment(model_class,true)
+          puts "WARNING: Could not reset auto-increment for #{model_table_name}; please investigate!" unless ensure_auto_increment(model_class,true)
           ActiveRecord::Base.connection.drop_table(shadow_table_name) rescue puts "WARNING: could not drop #{shadow_table_name}; please investigate!"
         elsif not @@model_shadow_map[model_class]
-          puts "WARNING: a shadow class #{shadow_class_name} should exist for #{model_class}, but is missing; please investigate!"
+          puts "WARNING: Shadow class #{shadow_class_name} should exist for #{model_class}, but is missing; please investigate!"
         end
       end
     end
@@ -60,10 +60,10 @@ module Batchit
       if not @@model_shadow_map[model] and ensure_shadow_table_exists(model,true) and ensure_no_auto_increment(model,true)
         add_model(model)
 
-        if model.ensure_shadow.nil?
-          puts "WARNING: unable to ensure shadow class for #{model}; please investigate!"
+        if model.shadow.nil?
+          puts "WARNING: Unable to ensure shadow class for #{model}; please investigate!"
         elsif (max_id = model.maximum(model.primary_key)) and max_id >= (shadow_id = shadow_class.next_id)
-          puts "NOTE: for #{model}, the shadow class had next_id of #{shadow_id} but the model has max_id of #{max_id}, updating..."
+          puts "NOTE: For #{model}, the shadow class had next_id of #{shadow_id} but the model has max_id of #{max_id}, updating..."
           set_auto_increment_for_table(model,model.shadow.table_name)
         end
 
