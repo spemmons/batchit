@@ -1,6 +1,7 @@
 = Batchit
 
-Support for MySQL "load data infile" for ActiveRecord objects supporting "belongs_to" needs
+Support for MySQL "load data infile" for ActiveRecord objects supporting "belongs_to" needs, and delayed commits to
+the database in general.
 
 == For ActiveRecord::Base classes
 
@@ -45,28 +46,29 @@ the "Batchit::Model" concern added.
 
 == Implementation Details
 
-When "batching" is on for a given class, a file is in the Batchit::Concern#infile_root directory, which defaults to
-Rails.root, combining the name of the class, the Process.pid, and a timestamp. This allows multiple processes to operate
-in parallel if necessary without problems. These files are deleted when the batch is successfully competed, but are
-left in the event of a failure for diagnostic purposes.
+When "batching" is on for a given class, a file is created in the Batchit::Concern#infile_root directory (which defaults
+to Rails.root) combining the name of the class, the Process.pid, and a timestamp. This allows multiple processes to
+operate in parallel if necessary without problems. These files are deleted when the batch is successfully competed, but
+are left in the event of a failure for diagnostic purposes.
+
+Lines are added immediately to the "infile" for each model creation event, but are delayed until batching is stopped
+for model update events to save unnecessary lines added to the file, since the last line for a given model will
+overwrite any previous entries.
 
 "Model" classes are modified to remove the "auto_increment" attribute of the primary key (usually "id"),
 and a "shadow" class is created with only an "id" that continues to be the auto_increment source for the original class.
 The typical Rails plumbing is used to create (and quickly delete) records in this table, relying on MySQL's inherent
 robustness to guarantee that unique "id"s continue to exist for these models.
 
-Lines are added immediately to the "infile" for each model creation event, but are delayed until batching is stopped
-for model update events to save unnecessary lines added to the file, since the last line for a given model will
-overwrite any previous entries.
+Whenever adding (or removing) the "Batchit::Model" concern to a model, you will need to run the following rake task to
+ensure that the schema changes are performed:
+
+    rake batchit:sync_all_models
 
 == Next Steps
 
 Here are a couple of things I have left to do...
 
-* Ensure that the "id" of new "shadow" classes pick up where an existing table left off
 * Figure out how to use Travis CI for mysql-specific builds (because I only contemplate supporting MySQL)
 * Do optimzation based on load testing
-* Review/revise the scheme based on error scenarios
-* Create rake tasks for checking and repairing schemas (such as when removing "Model")
 * Create rake tasks for completing a failed set of "infile"
-* Add configurability for the gem from an initializer
