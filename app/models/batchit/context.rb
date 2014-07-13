@@ -33,7 +33,7 @@ module Batchit
 
     def self.sync_all_models
       @@model_shadow_map.keys.collect(&:ensure_shadow)
-      cleanup_shadows
+      cleanup_unused_shadows
     end
 
     def self.cleanup_unused_shadows
