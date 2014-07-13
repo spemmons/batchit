@@ -62,7 +62,7 @@ module Batchit
 
         if model.shadow.nil?
           puts "WARNING: Unable to ensure shadow class for #{model}; please investigate!"
-        elsif (max_id = model.maximum(model.primary_key)) and max_id >= (shadow_id = shadow_class.next_id)
+        elsif (max_id = model.maximum(model.primary_key)) and max_id >= (shadow_id = model.shadow.next_id)
           puts "NOTE: For #{model}, the shadow class had next_id of #{shadow_id} but the model has max_id of #{max_id}, updating..."
           set_auto_increment_for_table(model,model.shadow.table_name)
         end

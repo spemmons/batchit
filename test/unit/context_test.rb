@@ -21,7 +21,7 @@ class ContextTest < ActiveSupport::TestCase
     assert_equal %w(A B C),AutoIncrementer.all.collect(&:name)
 
     AutoIncrementer.create!(name: 'D')
-    assert_equal [1,2,3,4],AutoIncrementer.all.collect(&:id)
+    assert_equal [1,2,3,5],AutoIncrementer.all.collect(&:id)
     assert_equal %w(A B C D),AutoIncrementer.all.collect(&:name)
 
   end
