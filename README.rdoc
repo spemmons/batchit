@@ -8,6 +8,27 @@ the database in general.
 It is well known that with MySQL Rails large numbers of record insertions using SQL "insert into ..." statements
 can be an order of magnitude slower than a batch insertion using a single "load data infile" statement.
 
+There are two levels of "batching" supported: 1) shallow and 2) deep.
+
+=== Shallow Support
+
+For any ActiveRecord model, you may create an instance of the Batchit::Infile object and call "start_batching,"
+then a series of calls to "add_record," followed by "stop_batching." This will use the "load data infile ..." SQL
+statement for each of the "records" added.
+
+    class Example < ActiveRecord::Base
+        ...
+    end
+
+    infile = Batchit::Infile.new(Example)
+    infile.start_batching
+    1000.times do |counter|
+        infile.add_record(Example.new(...))
+    end
+    infile.stop_batching
+
+=== Deep Support
+
 The challenge for Rails is how to use this technique, especially when the result of an Model.create
 method call is used with a "belongs_to" relation for another object.
 
