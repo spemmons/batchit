@@ -33,8 +33,18 @@ module Batchit
 
     def self.sync_all_models
       #:nocov: this cannot be tested since the setup for the other tests means NOT insisting on a fully-synced environment
-      @@model_shadow_map.keys.collect(&:ensure_shadow)
+      ensure_shadow_for_all_models
       cleanup_unused_shadows
+      #:nocov:
+    end
+
+    def self.ensure_shadow_for_all_models
+      #:nocov: this cannot be tested since the setup for the other tests means NOT insisting on a fully-synced environment
+      ActiveRecord::Base.connection.tables.each do |table_name|
+        next unless model_class = eval("defined?(#{model_class_name}) ? #{model_class_name} : nil")
+
+        model_class.ensure_shadow if model_class.respond_to?(:ensure_shadow)
+      end
       #:nocov:
     end
 
