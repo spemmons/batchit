@@ -23,4 +23,10 @@ class InfileTest < ActiveSupport::TestCase
     assert_equal %w(A B C D),ParentModel.all.collect(&:name)
   end
 
+  test 'error handling' do
+    assert_raises_string 'invalid object type: NilClass' do
+      Batchit::Infile.new(ParentModel).add_record(nil)
+    end
+  end
+
 end

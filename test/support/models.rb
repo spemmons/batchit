@@ -48,6 +48,9 @@ ActiveRecord::Schema.define do
     t.string :name
   end
 
+  create_table :unknown_shadows do |t|
+  end
+
 end
 
 class ParentModel < ActiveRecord::Base

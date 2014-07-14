@@ -24,6 +24,18 @@ class ContextTest < ActiveSupport::TestCase
     assert_equal [1,2,3,5],AutoIncrementer.all.collect(&:id)
     assert_equal %w(A B C D),AutoIncrementer.all.collect(&:name)
 
+    ActiveRecord::Base.connection.execute 'insert into auto_incrementers (id,name) values (10,"E")'
+    assert_equal [1,2,3,5,10],AutoIncrementer.all.collect(&:id)
+    assert_equal %w(A B C D E),AutoIncrementer.all.collect(&:name)
+
+    # TODO figure out how to test this... ActiveRecord::StatementInvalid: Mysql2::Error: SAVEPOINT active_record_1 does not exist: ROLLBACK TO SAVEPOINT active_record_1
+    #Batchit::Context.model_shadow_map[AutoIncrementer] = nil
+    #Batchit::Context.model_infile_map[AutoIncrementer] = nil
+    #AutoIncrementer.ensure_shadow
+    #AutoIncrementer.create!(name: 'F')
+    #assert_equal [1,2,3,5,10,12],AutoIncrementer.all.collect(&:id)
+    #assert_equal %w(A B C D E F),AutoIncrementer.all.collect(&:name)
+
   end
 
 end

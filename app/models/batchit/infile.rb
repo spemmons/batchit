@@ -44,10 +44,6 @@ module Batchit
       @model.column_names.collect{|key| value = attributes[key]; value ? value.to_s.gsub(/\t/,' ').gsub(/\\/,'\\\\') : '\\N'}.join("\t")
     end
 
-    def check_model_instance(object)
-      raise "#{@model} expected but #{object.class} found" unless object.kind_of?(@model)
-    end
-
     def flush_infile
       @file.close
       @file = nil

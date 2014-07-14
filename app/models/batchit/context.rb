@@ -32,8 +32,10 @@ module Batchit
     # SHADOW methods
 
     def self.sync_all_models
+      #:nocov: this cannot be tested since the setup for the other tests means NOT insisting on a fully-synced environment
       @@model_shadow_map.keys.collect(&:ensure_shadow)
       cleanup_unused_shadows
+      #:nocov:
     end
 
     def self.cleanup_unused_shadows
@@ -61,10 +63,14 @@ module Batchit
         add_model(model)
 
         if model.shadow.nil?
+          #:nocov: remove when we can figure out how to test; see TODO
           puts "WARNING: Unable to ensure shadow class for #{model}; please investigate!"
+          #:nocov:
         elsif (max_id = model.maximum(model.primary_key)) and max_id >= (shadow_id = model.shadow.next_id)
+          #:nocov: remove when we can figure out how to test; see TODO
           puts "NOTE: For #{model}, the shadow class had next_id of #{shadow_id} but the model has max_id of #{max_id}, updating..."
           set_auto_increment_for_table(model,model.shadow.table_name)
+          #:nocov:
         end
 
         puts "NOTE: Batching now enabled for #{model}"
