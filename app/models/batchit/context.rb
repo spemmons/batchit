@@ -42,7 +42,7 @@ module Batchit
       #:nocov: this cannot be tested since the setup for the other tests means NOT insisting on a fully-synced environment
       ActiveRecord::Base.connection.tables.each do |table_name|
         model_class_name = table_name.singularize.classify
-        next unless model_class = eval("defined?(#{model_class_name}) ? #{model_class_name} : nil")
+        next unless model_class = eval(model_class_name) rescue nil
 
         model_class.ensure_shadow if model_class.respond_to?(:ensure_shadow)
       end
@@ -57,7 +57,7 @@ module Batchit
         model_table_name = model_name_part.pluralize
         model_class_name = model_name_part.classify
         shadow_class_name = shadow_table_name.singularize.classify
-        if not (model_class = eval("defined?(#{model_class_name}) ? #{model_class_name} : nil"))
+        if not (model_class = eval(model_class_name) rescue nil)
           puts "WARNING: Shadow table #{shadow_table_name} exists but no model class #{model_class_name} exists; drop this table yourself, just in case!"
         elsif not @@model_shadow_map.keys.include?(model_class)
           puts "NOTE: Dropping shadow table #{shadow_table_name} and resetting auto-increment for #{model_table_name}"
