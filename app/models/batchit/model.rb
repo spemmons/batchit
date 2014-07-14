@@ -56,7 +56,7 @@ module Batchit
 
     def arel_attributes_values(include_primary_key = true, include_readonly_attributes = true, attribute_names = @attributes.keys)
       attribute_values = super(include_primary_key,include_readonly_attributes,attribute_names)
-      if @hijack_update and (update_cache = Context.model_updates_map[self.class])
+      if @hijack_update and attribute_values.any? and (update_cache = Context.model_updates_map[self.class])
         update_cache[self.id] = (update_cache[self.id] || {}).merge(attribute_values)
         attribute_values = []
       end
